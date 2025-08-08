@@ -33,6 +33,7 @@ struct AddTransactionView: View {
         "Bills & Utilities", "Education", "Fitness", "Beauty", "Other"
     ]
     private let paymentMethods = ["Card", "Cash", "Apple Pay", "Bank Transfer"]
+
     
     var body: some View {
         NavigationStack{
@@ -80,19 +81,39 @@ struct AddTransactionView: View {
                     .pickerStyle(.navigationLink)
                 }
                 
-                // payment section
-                Section("Payment Method"){
-                    Picker("Payment Method", selection: $selectedPaymentMethod){
+                // payment method section
+                Section("Payment Method") {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
                         ForEach(paymentMethods, id: \.self) { method in
-                            HStack{
-                                Image(systemName: iconForPaymentMethod(method)).foregroundColor(.purple)
-                                Text(method)
+                            Button {
+                                selectedPaymentMethod = method
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: iconForPaymentMethod(method))
+                                        .font(.title3)
+                                        .foregroundColor(.purple)
+                                    
+                                    Text(method)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedPaymentMethod == method ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(selectedPaymentMethod == method ? Color.purple : Color.clear, lineWidth: 2)
+                                        )
+                                )
                             }
-                            .tag(method)
+                            .buttonStyle(.plain)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    
+                    .padding(.vertical, 4)
                 }
                 
                 // additional options
@@ -248,6 +269,7 @@ struct AddTransactionView: View {
         default: return "questionmark"
         }
     }
+
 }
 
 // MARK: - Transaction Preview Row
