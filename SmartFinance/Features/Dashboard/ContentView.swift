@@ -12,11 +12,13 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel = DashboardViewModel()
     @State private var showingAddTransaction = false
+    @State private var showingSettings = false
     @State private var showingTransactionList = false
     
     var body: some View {
         NavigationStack {
             ScrollView {
+
                 LazyVStack(spacing: 24) {
                     // Balance Overview Card
                     BalanceCardView(
@@ -112,6 +114,16 @@ struct ContentView: View {
                             .font(.title2)
                             .foregroundColor(.blue)
                     }
+                    
+                }
+                ToolbarItemGroup(placement: .navigationBarLeading) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
                 }
             }
             .refreshable {
@@ -123,6 +135,10 @@ struct ContentView: View {
                }
                .sheet(isPresented: $showingAddTransaction) {
                    AddTransactionView()
+                       .environment(\.managedObjectContext, viewContext)
+               }
+               .sheet(isPresented: $showingSettings) {
+                   SettingsView()
                        .environment(\.managedObjectContext, viewContext)
                }
                .sheet(isPresented: $showingTransactionList) {
