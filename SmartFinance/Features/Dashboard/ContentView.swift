@@ -2,85 +2,194 @@
 //  ContentView.swift
 //  SmartFinance
 //
-//  Created by Snigdha Tiwari  on 08/08/2025.
+//  Created by Snigdha Tiwari on 08/08/2025.
 //
 
 import SwiftUI
 import CoreData
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
-        animation: .default)
-    private var items: FetchedResults<Item>
-
+    @StateObject private var viewModel = DashboardViewModel()
+    
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp!, formatter: itemFormatter)")
-                    } label: {
-                        Text(item.timestamp!, formatter: itemFormatter)
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 24) {
+                    // Balance Overview Card
+                    BalanceCardView(
+                        balance: viewModel.currentBalance,
+                        monthlySpending: viewModel.monthlySpending,
+                        isLoading: viewModel.isLoading
+                    )
+                    
+                    // Recent Transactions Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Recent Transactions")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            
+                            Spacer()
+                            
+                            Button("See All") {
+                                // Navigate to full transaction list - implement later
+                            }
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        }
+                        
+                        if viewModel.transactions.isEmpty {
+                            // Empty state
+                            VStack(spacing: 12) {
+                                Image(systemName: "creditcard")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.gray)
+                                
+                                Text("No transactions yet")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                
+                                Text("Add your first transaction to get started")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                                
+                                Button("Add Sample Transaction") {
+                                    viewModel.addSampleTransaction()
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                            .background(Color.gray.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            // Transaction List
+                            LazyVStack(spacing: 0) {
+                                ForEach(viewModel.transactions, id: \.id) { transaction in
+                                    TransactionRowView(transaction: transaction)
+                                    
+                                    if transaction != viewModel.transactions.last {
+                                        Divider()
+                                            .padding(.leading, 56)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color(.systemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                        }
                     }
+                    
+                    // Quick Stats Section
+                    QuickStatsView(viewModel: viewModel)
                 }
-                .onDelete(perform: deleteItems)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
+            .navigationTitle("SmartFinance")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button {
+                        viewModel.addSampleTransaction()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Button {
+                        // Profile/Settings - implement later
+                    } label: {
+                        Image(systemName: "person.circle")
+                            .font(.title2)
+                            .foregroundColor(.blue)
                     }
                 }
             }
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(context: viewContext)
-            newItem.timestamp = Date()
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            .refreshable {
+                await viewModel.refresh()
             }
         }
+        .onAppear {
+            viewModel.loadDashboardData()
+        }
     }
+}
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            offsets.map { items[$0] }.forEach(viewContext.delete)
-
-            do {
-                try viewContext.save()
-            } catch {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-                let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+// MARK: - Quick Stats View
+struct QuickStatsView: View {
+    @ObservedObject var viewModel: DashboardViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Stats")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            HStack(spacing: 16) {
+                // Transaction Count
+                StatCardView(
+                    title: "Transactions",
+                    value: "\(viewModel.transactions.count)",
+                    icon: "creditcard",
+                    color: .blue
+                )
+                
+                // Average Transaction
+                StatCardView(
+                    title: "Average",
+                    value: viewModel.averageTransactionAmount,
+                    icon: "chart.line.uptrend.xyaxis",
+                    color: .green
+                )
+                
+                // This Month
+                StatCardView(
+                    title: "This Month",
+                    value: viewModel.monthlySpendingFormatted,
+                    icon: "calendar",
+                    color: .orange
+                )
             }
         }
     }
 }
 
-private let itemFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .short
-    formatter.timeStyle = .medium
-    return formatter
-}()
+// MARK: - Stat Card View
+struct StatCardView: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(color)
+            
+            Text(value)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+    }
+}
 
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
