@@ -5,6 +5,7 @@
 //  Created by Snigdha Tiwari  on 08/08/2025.
 //
 
+// AddTransactionView.swift - Fixed Version
 import SwiftUI
 import CoreData
 
@@ -12,350 +13,191 @@ struct AddTransactionView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
-    //form fields
-    @State private var amount: String = ""
-    @State private var merchant: String = ""
-    @State private var selectedCategory: String = "Food & Dining"
-    @State private var selectedPaymentMethod: String = "Card"
-    @State private var notes: String = ""
-    @State private var transactionDate = Date()
-    @State private var isRecurring = false
+    @State private var amount = ""
+    @State private var merchant = ""
+    @State private var selectedCategory = "Other"
+    @State private var selectedPaymentMethod: PaymentMethod = .card
+    @State private var notes = ""
+    @State private var date = Date()
     
-    //form state
-    @State private var isLoading = false
-    @State private var showingAlert = false
-    @State private var alertMessage = ""
-    
-    //available options
-    private let categories = [
-        "Food & Dining", "Groceries", "Shopping", "Transportation",
-        "Gas & Fuel", "Entertainment", "Technology", "Healthcare",
-        "Bills & Utilities", "Education", "Fitness", "Beauty", "Other"
-    ]
-    private let paymentMethods = ["Card", "Cash", "Apple Pay", "Bank Transfer"]
-
+    // Simple suggestion state
+    @State private var suggestedCategory = ""
+    @State private var showSuggestion = false
     
     var body: some View {
-        NavigationStack{
-            Form{
-                //amount section
-                Section("Transaction Details"){
-                    HStack{
-                        Image(systemName: "dollarsign.circle.fill").foregroundColor(.green)
+        NavigationView {
+            Form {
+                // Amount Section
+                Section("Amount") {
+                    HStack {
+                        Text("$")
                             .font(.title2)
-                        
+                            .foregroundColor(.green)
                         TextField("0.00", text: $amount)
                             .keyboardType(.decimalPad)
                             .font(.title2)
-                            .fontWeight(.semibold)
                     }
-                    
-                    HStack{
-                        Image(systemName: "building.2.fill")
-                            .foregroundColor(.blue)
-                        TextField("Merchant Name", text: $merchant)
-                    }
-                    
-                    DatePicker(
-                        "Date",
-                        selection: $transactionDate,
-                        in: ...Date(),
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(.compact)
                 }
                 
-                // category section
-                Section("Category"){
-                    Picker("Category", selection: $selectedCategory){
-                        ForEach(categories, id: \.self) { category in
-                            HStack {
-                                Image(systemName: iconForCategory(category))
-                                    .foregroundColor(colorForCategory(category))
-                                Text(category)
-                            }
-                            .tag(category)
+                // Merchant Section
+                Section("Merchant") {
+                    TextField("Where did you spend?", text: $merchant)
+                        .onChange(of: merchant) { newValue in
+                            // Fixed: Direct call, no @objc needed
+                            updateSuggestion(for: newValue)
                         }
-                        
+                    
+                    // Simple suggestion
+                    if showSuggestion && !suggestedCategory.isEmpty {
+                        HStack {
+                            Image(systemName: "lightbulb")
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading) {
+                                Text("Suggestion")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(suggestedCategory)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            Spacer()
+                            Button("Use") {
+                                selectedCategory = suggestedCategory
+                                showSuggestion = false
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                        .padding(.vertical, 8)
                     }
-                    .pickerStyle(.navigationLink)
                 }
                 
-                // payment method section
+                // Category Section
+                Section("Category") {
+                    CategoryPicker(selectedCategory: $selectedCategory)
+                }
+                
+                // Payment Method Section
                 Section("Payment Method") {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
-                        ForEach(paymentMethods, id: \.self) { method in
-                            Button {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 12) {
+                        ForEach(PaymentMethod.allCases, id: \.self) { method in
+                            Button(action: {
                                 selectedPaymentMethod = method
-                            } label: {
+                            }) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: iconForPaymentMethod(method))
-                                        .font(.title3)
-                                        .foregroundColor(.purple)
-                                    
-                                    Text(method)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.primary)
+                                    Image(systemName: method.icon)
+                                        .font(.system(size: 16))
+                                    Text(method.rawValue)
+                                        .font(.system(size: 14, weight: .medium))
                                 }
                                 .frame(maxWidth: .infinity, minHeight: 44)
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 16)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .fill(selectedPaymentMethod == method ? Color.purple.opacity(0.1) : Color.gray.opacity(0.1))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(selectedPaymentMethod == method ? Color.purple : Color.clear, lineWidth: 2)
-                                        )
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(selectedPaymentMethod == method ?
+                                              Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(selectedPaymentMethod == method ?
+                                                Color.blue : Color.clear, lineWidth: 2)
                                 )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
-                    .padding(.vertical, 4)
                 }
                 
-                // additional options
-                Section("Additional Options"){
-                    HStack{
-                        Image(systemName: "repeat")
-                            .foregroundColor(.orange)
-                        Toggle("Recurring Transaction", isOn: $isRecurring)
-                    }
-                    HStack(alignment: .top){
-                        Image(systemName: "note.text")
-                            .foregroundColor(.gray)
-                            .padding(.top, 8)
-                        TextField("Notes (optional)", text: $notes, axis: .vertical)
-                            .lineLimit(3...6)
-                    }
+                // Date Section
+                Section("Date") {
+                    DatePicker("Transaction Date", selection: $date, displayedComponents: .date)
                 }
                 
-                // preview section
-                if !amount.isEmpty && !merchant.isEmpty {
-                    Section("Preview"){
-                        TransactionPreviewRow(
-                            amount:amount,
-                            merchant: merchant,
-                            category: selectedCategory,
-                            paymentMethod: selectedPaymentMethod,
-                            date: transactionDate,
-                            isRecurring: isRecurring
-                        )
+                // Notes Section
+                Section("Notes (Optional)") {
+                    TextField("Add notes...", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+                
+                // Save Button
+                Section {
+                    Button("Add Transaction") {
+                        saveTransaction()
                     }
+                    .frame(maxWidth: .infinity)
+                    .disabled(amount.isEmpty || merchant.isEmpty)
                 }
             }
             .navigationTitle("Add Transaction")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading){
-                    Button("Cancel"){
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
                         dismiss()
                     }
                 }
-                
-                ToolbarItem(placement: .navigationBarTrailing){
-                    Button("Save"){
-                        saveTransaction()
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!isFormValid || isLoading)
-                }
-            }
-            .alert("Error", isPresented: $showingAlert){
-                Button("OK"){}
-            } message: {
-                Text(alertMessage)
-            }
-            .onAppear {
-                setupInitialData()
             }
         }
     }
     
-    // MARK: - Computed Properties
-    
-    private var isFormValid: Bool {
-        !amount.isEmpty &&
-        !merchant.isEmpty &&
-        Double(amount) != nil &&
-        Double(amount)! > 0
+    // Fixed: Simple function, no @objc needed
+    private func updateSuggestion(for merchant: String) {
+        let merchantLower = merchant.lowercased()
+        var suggestion = ""
+        
+        // Simple rule-based suggestions
+        if merchantLower.contains("starbucks") || merchantLower.contains("mcdonald") || merchantLower.contains("restaurant") {
+            suggestion = "Food & Dining"
+        } else if merchantLower.contains("amazon") || merchantLower.contains("target") || merchantLower.contains("walmart") {
+            suggestion = "Shopping"
+        } else if merchantLower.contains("shell") || merchantLower.contains("chevron") || merchantLower.contains("gas") {
+            suggestion = "Transportation"
+        } else if merchantLower.contains("netflix") || merchantLower.contains("spotify") || merchantLower.contains("apple music") {
+            suggestion = "Entertainment"
+        } else if merchantLower.contains("whole foods") || merchantLower.contains("safeway") || merchantLower.contains("grocery") {
+            suggestion = "Groceries"
+        } else if merchantLower.contains("cvs") || merchantLower.contains("pharmacy") || merchantLower.contains("doctor") {
+            suggestion = "Healthcare"
+        }
+        
+        // Update suggestion state
+        if !suggestion.isEmpty && suggestion != selectedCategory && merchant.count > 2 {
+            suggestedCategory = suggestion
+            showSuggestion = true
+        } else {
+            showSuggestion = false
+        }
     }
     
-    // MARK: - Methods
-    
-    private func setupInitialData(){
-        transactionDate = Date()
-    }
-    private func saveTransaction(){
-        guard let amountValue = Double(amount), amountValue > 0 else{
-            showError("Please enter a valid amount")
+    private func saveTransaction() {
+        // Fixed: Safe unwrapping, no force unwrap
+        guard let amountValue = Double(amount), amountValue > 0 else {
+            print("❌ Invalid amount")
             return
         }
         
-        guard !merchant.trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty else {
-            showError("Please enter a merchant name")
-            return
-        }
+        let transaction = Transaction(context: viewContext)
+        transaction.id = UUID()
+        transaction.amount = NSDecimalNumber(value: amountValue)
+        transaction.merchant = merchant
+        transaction.category = selectedCategory
+        transaction.paymentMethod = selectedPaymentMethod.rawValue
+        transaction.notes = notes.isEmpty ? nil : notes
+        transaction.date = date
         
-        isLoading = true
-        
-        // create new transaction
-        let transaction = Transaction.create(in: viewContext, amount: Decimal(amountValue), merchant: merchant.trimmingCharacters(in: .whitespacesAndNewlines),
-                                             category: selectedCategory, currency: "USD", paymentMethod: selectedPaymentMethod, notes: notes.isEmpty ? nil:notes)
-        transaction.date = transactionDate
-        transaction.isRecurring = isRecurring
-        
-        // save to core data
         do {
             try viewContext.save()
-            
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            print("✅ Transaction saved: \(merchant) - $\(amountValue)")
             dismiss()
         } catch {
-            showError("Failed to save transaction: \(error.localizedDescription)")
-        }
-        isLoading = false
-    }
-    
-    private func showError(_ message: String) {
-        alertMessage = message
-        showingAlert = true
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func iconForCategory(_ category: String) -> String {
-        switch category.lowercased() {
-        case "food & dining": return "fork.knife"
-        case "groceries": return "cart"
-        case "shopping": return "bag"
-        case "transportation": return "car"
-        case "gas & fuel": return "fuelpump"
-        case "entertainment": return "tv"
-        case "technology": return "laptopcomputer"
-        case "healthcare": return "cross.case"
-        case "bills & utilities": return "house"
-        case "education": return "book"
-        case "fitness": return "figure.run"
-        case "beauty": return "scissors"
-        default: return "questionmark.circle"
+            print("❌ Failed to save transaction: \(error)")
         }
     }
-    
-    private func colorForCategory(_ category: String) -> Color {
-        switch category.lowercased() {
-        case "food & dining": return .orange
-        case "groceries": return .green
-        case "shopping": return .purple
-        case "transportation": return .blue
-        case "gas & fuel": return .red
-        case "entertainment": return .pink
-        case "technology": return .gray
-        case "healthcare": return .red
-        case "bills & utilities": return .yellow
-        default: return .gray
-        }
-    }
-    private func iconForPaymentMethod(_ method: String) -> String {
-        switch method.lowercased() {
-        case "card": return "creditcard"
-        case "cash": return "banknote"
-        case "apple pay": return "wave.3.right"
-        case "bank transfer": return "building.columns"
-        default: return "questionmark"
-        }
-    }
-
 }
 
-// MARK: - Transaction Preview Row
-
-struct TransactionPreviewRow: View {
-    let amount: String
-    let merchant: String
-    let category: String
-    let paymentMethod: String
-    let date: Date
-    let isRecurring: Bool
-    
-    var body: some View {
-        HStack(spacing: 16) {
-                    // Category Icon
-                    Image(systemName: iconForCategory(category))
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: 40, height: 40)
-                        .background(Color.blue.opacity(0.1))
-                        .clipShape(Circle())
-            // Transaction Details
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(merchant)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            HStack {
-                                               Text(category)
-                                                   .font(.caption)
-                                                   .foregroundColor(.secondary)
-                                               
-                                               if isRecurring {
-                                                   Image(systemName: "repeat")
-                                                       .font(.caption2)
-                                                       .foregroundColor(.orange)
-                                               }
-                                           }
-                                       }
-            Spacer()
-            // Amount and Date
-                        VStack(alignment: .trailing, spacing: 4) {
-                            if let amountValue = Double(amount) {
-                                Text("$\(amountValue, specifier: "%.2f")")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                            } else {
-                                Text("$\(amount)")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
-                            }
-                            
-                            Text(date, style: .date)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                private func iconForCategory(_ category: String) -> String {
-                    switch category.lowercased() {
-                    case "food & dining": return "fork.knife"
-                    case "groceries": return "cart"
-                    case "shopping": return "bag"
-                    case "transportation": return "car"
-                    case "gas & fuel": return "fuelpump"
-                    case "entertainment": return "tv"
-                    case "technology": return "laptopcomputer"
-                    case "healthcare": return "cross.case"
-                    case "bills & utilities": return "house"
-                    case "education": return "book"
-                    case "fitness": return "figure.run"
-                    case "beauty": return "scissors"
-                    default: return "questionmark.circle"
-                    }
-                }
-            }
-
-
-
+// Preview
 #Preview {
-    NavigationStack{
-        
-        AddTransactionView()
-    }
-    .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    AddTransactionView()
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }
