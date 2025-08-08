@@ -118,7 +118,7 @@ struct AddTransactionView: View {
                             amount:amount,
                             merchant: merchant,
                             category: selectedCategory,
-                            paymentMehtod: selectedPaymentMethod,
+                            paymentMethod: selectedPaymentMethod,
                             date: transactionDate,
                             isRecurring: isRecurring
                         )
@@ -328,7 +328,7 @@ struct TransactionPreviewRow: View {
                 }
             }
 
-    }
+
 
 #Preview {
     NavigationStack{

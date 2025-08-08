@@ -9,7 +9,9 @@ import SwiftUI
 import CoreData
 
 struct ContentView: View {
+    @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel = DashboardViewModel()
+    @State private var showingAddTransaction = false
     
     var body: some View {
         NavigationStack {
@@ -49,15 +51,16 @@ struct ContentView: View {
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                 
-                                Text("Add your first transaction to get started")
+                                Text("Tap the + button to add your first transaction")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                                 
-                                Button("Add Sample Transaction") {
+                                Button("Add Sample Data") {
                                     viewModel.addSampleTransaction()
                                 }
-                                .buttonStyle(.borderedProminent)
+                                .font(.caption)
+                                .foregroundColor(.blue)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
@@ -94,7 +97,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .navigationBarTrailing) {
                     Button {
-                        viewModel.addSampleTransaction()
+                        showingAddTransaction = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title2)
@@ -116,6 +119,10 @@ struct ContentView: View {
         }
         .onAppear {
             viewModel.loadDashboardData()
+        }
+        .sheet(isPresented: $showingAddTransaction) {
+            AddTransactionView()
+                .environment(\.managedObjectContext, viewContext)
         }
     }
 }
