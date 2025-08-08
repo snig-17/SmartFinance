@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F482C7362E4625BC0031DAF0 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = F482C7352E4625B40031DAF0 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F476CA5A2E45D22F00EF7F73 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		F476CA472E45D15100EF7F73 /* SmartFinance.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartFinance.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F476CA592E45D22F00EF7F73 /* SmartFinanceTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartFinanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F476CA632E45D22F00EF7F73 /* SmartFinanceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SmartFinanceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F482C7352E4625B40031DAF0 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -79,6 +84,7 @@
 				F476CA5C2E45D22F00EF7F73 /* SmartFinanceTests */,
 				F476CA662E45D22F00EF7F73 /* SmartFinanceUITests */,
 				F476CA482E45D15100EF7F73 /* Products */,
+				F482C7352E4625B40031DAF0 /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F482C7362E4625BC0031DAF0 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
