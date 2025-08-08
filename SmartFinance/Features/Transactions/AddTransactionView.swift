@@ -5,7 +5,6 @@
 //  Created by Snigdha Tiwari  on 08/08/2025.
 //
 
-// AddTransactionView.swift - Fixed Version
 import SwiftUI
 import CoreData
 
@@ -24,6 +23,10 @@ struct AddTransactionView: View {
     @State private var suggestedCategory = ""
     @State private var showSuggestion = false
     
+    // Receipt scanner state
+    @State private var showingReceiptScanner = false
+    @State private var scannedReceipt: ScannedReceipt?
+    
     var body: some View {
         NavigationView {
             Form {
@@ -36,6 +39,17 @@ struct AddTransactionView: View {
                         TextField("0.00", text: $amount)
                             .keyboardType(.decimalPad)
                             .font(.title2)
+                        
+                        Spacer()
+                        
+                        // Receipt Scanner Button
+                        Button(action: {
+                            showingReceiptScanner = true
+                        }) {
+                            Image(systemName: "doc.text.viewfinder")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
                 
@@ -43,7 +57,6 @@ struct AddTransactionView: View {
                 Section("Merchant") {
                     TextField("Where did you spend?", text: $merchant)
                         .onChange(of: merchant) { newValue in
-                            // Fixed: Direct call, no @objc needed
                             updateSuggestion(for: newValue)
                         }
                     
@@ -138,10 +151,45 @@ struct AddTransactionView: View {
                     }
                 }
             }
+            // Sheet presentation moved to correct location
+            .sheet(isPresented: $showingReceiptScanner) {
+                ReceiptScannerView(onReceiptScanned: { receipt in
+                    handleScannedReceipt(receipt)
+                })
+            }
         }
     }
     
-    // Fixed: Simple function, no @objc needed
+    // Function moved outside of body - FIXED
+    private func handleScannedReceipt(_ receipt: ScannedReceipt) {
+        scannedReceipt = receipt
+        
+        // Auto-fill form with scanned data
+        if let merchantName = receipt.merchant {
+            merchant = merchantName
+        }
+        
+        if let scannedAmount = receipt.amount {
+            amount = String(format: "%.2f", scannedAmount)
+        }
+        
+        if let category = receipt.category {
+            selectedCategory = category
+        }
+        
+        if let scannedDate = receipt.date {
+            date = scannedDate
+        }
+        
+        // Show confidence indicator
+        if receipt.isHighConfidence {
+            print("✅ Receipt scanned successfully!")
+        } else {
+            print("⚠️ Low confidence scan - please verify details")
+        }
+    }
+    
+    // Simple function for suggestions
     private func updateSuggestion(for merchant: String) {
         let merchantLower = merchant.lowercased()
         var suggestion = ""
@@ -171,7 +219,7 @@ struct AddTransactionView: View {
     }
     
     private func saveTransaction() {
-        // Fixed: Safe unwrapping, no force unwrap
+        // Safe unwrapping, no force unwrap
         guard let amountValue = Double(amount), amountValue > 0 else {
             print("❌ Invalid amount")
             return
