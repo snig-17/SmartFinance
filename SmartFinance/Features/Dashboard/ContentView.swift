@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @StateObject private var viewModel = DashboardViewModel()
     @State private var showingAddTransaction = false
+    @State private var showingTransactionList = false
     
     var body: some View {
         NavigationStack {
@@ -32,12 +33,12 @@ struct ContentView: View {
                                 .fontWeight(.semibold)
                             
                             Spacer()
-                            
+
                             Button("See All") {
-                                // Navigate to full transaction list - implement later
-                            }
-                            .font(.caption)
-                            .foregroundColor(.blue)
+                                        showingTransactionList = true
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
                         }
                         
                         if viewModel.transactions.isEmpty {
@@ -118,12 +119,16 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            viewModel.loadDashboardData()
-        }
-        .sheet(isPresented: $showingAddTransaction) {
-            AddTransactionView()
-                .environment(\.managedObjectContext, viewContext)
-        }
+                   viewModel.loadDashboardData()
+               }
+               .sheet(isPresented: $showingAddTransaction) {
+                   AddTransactionView()
+                       .environment(\.managedObjectContext, viewContext)
+               }
+               .sheet(isPresented: $showingTransactionList) {
+                   TransactionListView()
+                       .environment(\.managedObjectContext, viewContext)
+               }
     }
 }
 
@@ -194,6 +199,7 @@ struct StatCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
     }
+        
 }
 
 #Preview {
